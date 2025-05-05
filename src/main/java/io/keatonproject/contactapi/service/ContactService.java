@@ -10,6 +10,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,6 +19,7 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import static io.keatonproject.contactapi.constant.Constant.PHOTO_DIRECTORY;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 @Service
@@ -46,7 +48,7 @@ public class ContactService {
 
     public String uploadPhoto(String id, MultipartFile file) {
         Contact contact = getContactById(id);
-        String photoUrl = photoFunction.apply();
+        String photoUrl = photoFunction.apply(id, file);
         contact.setPhotoUrl(photoUrl);
         contactRepo.save(contact);
         return photoUrl;
@@ -56,10 +58,14 @@ public class ContactService {
             .map(name ->"." + name.substring(filename.lastIndexOf(".") + 1)).orElse(".png");
 
     private final BiFunction<String, MultipartFile, String> photoFunction = (id, image) -> {
+        String filename = id + fileExtension.apply(image.getOriginalFilename());
         try {
-            Path fileStoragelocation = Paths.get("").toAbsolutePath().normalize();
-            if(!Files.exists(fileStoragelocation)) { Files.createDirectories(fileStoragelocation); }
-            Files.copy(image.getInputStream(), fileStoragelocation.resolve(id + fileExtension.apply(image.getOriginalFilename())), REPLACE_EXISTING);
+            Path fileStorageLocation = Paths.get(PHOTO_DIRECTORY).toAbsolutePath().normalize();
+            if(!Files.exists(fileStorageLocation)) { Files.createDirectories(fileStorageLocation); }
+            Files.copy(image.getInputStream(), fileStorageLocation.resolve(filename), REPLACE_EXISTING);
+            return ServletUriComponentsBuilder
+                    .fromCurrentContextPath()
+                    .path("/contacts/image" + filename).toUriString();
         } catch (Exception exception) {
             throw new RuntimeException("Unable to save image");
         }
