@@ -46,7 +46,7 @@ public class ContactService {
 
     public String uploadPhoto(String id, MultipartFile file) {
         Contact contact = getContactById(id);
-        String photoUrl = null;
+        String photoUrl = photoFunction.apply();
         contact.setPhotoUrl(photoUrl);
         contactRepo.save(contact);
         return photoUrl;
@@ -59,7 +59,7 @@ public class ContactService {
         try {
             Path fileStoragelocation = Paths.get("").toAbsolutePath().normalize();
             if(!Files.exists(fileStoragelocation)) { Files.createDirectories(fileStoragelocation); }
-            Files.copy(image.getInputStream(), fileStoragelocation.resolve(id + ".png"), REPLACE_EXISTING);
+            Files.copy(image.getInputStream(), fileStoragelocation.resolve(id + fileExtension.apply(image.getOriginalFilename())), REPLACE_EXISTING);
         } catch (Exception exception) {
             throw new RuntimeException("Unable to save image");
         }
